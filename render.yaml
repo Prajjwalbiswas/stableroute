@@ -1,0 +1,13 @@
+# One-click deploy of the StableRoute MCP agent to Render (free tier).
+# Render auto-provides an HTTPS URL like https://stableroute-asp.onrender.com
+# Your MCP endpoint for OKX.AI listing is that URL + /mcp
+services:
+  - type: web
+    name: stableroute-asp
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python mcp_server.py
+    envVars:
+      - key: STABLEROUTE_LIVE_GAS
+        value: "0"     # set to "1" once deployed on a host with RPC access
