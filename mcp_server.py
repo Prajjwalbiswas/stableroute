@@ -11,6 +11,7 @@ Local stdio debugging:
 from __future__ import annotations
 import os
 from fastmcp import FastMCP
+from starlette.responses import HTMLResponse, JSONResponse
 from cost_model import compare_routes as _compare
 from config import ONRAMPS, OFFRAMPS, CHAINS
 
@@ -65,6 +66,32 @@ def list_corridors() -> dict:
         "receive_currencies": sorted(OFFRAMPS),
         "chains": sorted(CHAINS),
     }
+
+
+@mcp.custom_route("/", methods=["GET"])
+async def landing(request):
+    return HTMLResponse(
+        """<!DOCTYPE html><html><head><meta charset="utf-8">
+        <title>StableRoute ASP</title>
+        <style>body{font-family:system-ui,sans-serif;background:#0b1f3a;color:#f6f2e9;
+        display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;text-align:center}
+        .c{max-width:520px;padding:32px}h1{color:#2e63ff;margin:0 0 8px}code{background:#12294a;
+        padding:2px 8px;border-radius:6px;color:#d9a441}a{color:#2e63ff}</style></head>
+        <body><div class="c">
+        <h1>StableRoute</h1>
+        <p>Cheapest stablecoin route for a cross-border transfer. This service is <b>live</b>.</p>
+        <p>It's an OKX.AI Agent Service Provider — the machine-readable MCP endpoint is at
+        <code>/mcp</code>, not this page. Point an MCP client there.</p>
+        <p>Tools: <code>compare_routes</code> · <code>list_corridors</code></p>
+        <p style="opacity:.6;font-size:13px">Health check: <a href="/health">/health</a></p>
+        </div></body></html>"""
+    )
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request):
+    return JSONResponse({"status": "ok", "service": "StableRoute", "mcp_endpoint": "/mcp",
+                         "tools": ["compare_routes", "list_corridors"]})
 
 
 if __name__ == "__main__":
