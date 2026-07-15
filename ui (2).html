@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StableRoute — cross-border cost checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&family=Cardo:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0b1f3a;
+    --navy-2: #12294a;
+    --cream: #f6f2e9;
+    --card: #fffdf8;
+    --blue: #2e63ff;
+    --blue-soft: #e6ecff;
+    --gold: #d9a441;
+    --magenta: #cc2e7a;
+    --ink: #0b1f3a;
+    --muted: #6b7891;
+    --line: #e4ded1;
+    --good: #1f8a5b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 20px 72px;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+  }
+  h1 { font-family: 'Cardo', serif; font-size: 40px; line-height: 1.02; letter-spacing: -0.01em; }
+  h1 .mark { color: var(--blue); }
+  header p { color: var(--muted); font-size: 15px; margin-top: 10px; max-width: 620px; }
+
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } body { padding: 24px 16px 56px; } h1 { font-size: 32px; } }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .panel-title { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+
+  label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  .field { margin-bottom: 16px; }
+  input, select {
+    width: 100%; font-family: inherit; font-size: 15px; color: var(--ink);
+    padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
+    background: #fff; outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .seg button {
+    flex: 1; font-family: inherit; font-size: 13px; font-weight: 600; padding: 10px;
+    background: #fff; border: 0; color: var(--muted); cursor: pointer; transition: background .15s, color .15s;
+  }
+  .seg button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+  .amount-wrap { position: relative; }
+  .amount-wrap .cur { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 14px; }
+  .amount-wrap input { padding-left: 44px; font-family: 'DM Mono', monospace; }
+
+  .go { width: 100%; margin-top: 6px; font-family: inherit; font-size: 15px; font-weight: 600;
+    padding: 13px; border: 0; border-radius: 10px; background: var(--blue); color: #fff; cursor: pointer;
+    transition: transform .08s ease, background .15s; }
+  .go:hover { background: #1f4fe0; }
+  .go:active { transform: translateY(1px); }
+
+  /* results */
+  .results { display: flex; flex-direction: column; gap: 16px; }
+  .reco { background: var(--navy); color: #fff; border-radius: 14px; padding: 24px; position: relative; overflow: hidden; }
+  .reco .rlabel { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9fb3d6; margin-bottom: 12px; }
+  .reco .big { font-family: 'Cardo', serif; font-size: 52px; line-height: 1; letter-spacing: -0.02em; }
+  .reco .big small { font-size: 22px; color: var(--gold); font-family: 'DM Mono', monospace; letter-spacing: 0; }
+  .reco .route { margin-top: 10px; font-size: 16px; }
+  .reco .route b { color: #fff; }
+  .reco .sub { margin-top: 6px; color: #9fb3d6; font-size: 14px; }
+  .chip { display: inline-block; font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); color: #cdd9ee; margin-right: 6px; }
+
+  /* signature: cost anatomy bar */
+  .anatomy .panel-title { margin-bottom: 6px; }
+  .anatomy .hint { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; background: #efe9dc; }
+  .bar span { display: block; height: 100%; transition: width .5s cubic-bezier(.2,.7,.2,1); }
+  .s-onramp { background: var(--blue); }
+  .s-network { background: var(--gold); }
+  .s-offramp { background: var(--magenta); }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px 22px; margin-top: 16px; }
+  .legend div { font-size: 13px; }
+  .legend .k { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend .v { font-family: 'DM Mono', monospace; color: var(--muted); font-size: 12px; margin-top: 2px; margin-left: 17px; }
+
+  .savings { display: flex; align-items: baseline; gap: 10px; padding: 14px 16px; border: 1px dashed var(--good); border-radius: 10px; background: #f0f8f3; }
+  .savings b { font-family: 'DM Mono', monospace; color: var(--good); font-size: 18px; }
+  .savings span { font-size: 13px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 10px 10px; border-bottom: 1px solid var(--line); }
+  th.num, td.num { text-align: right; font-family: 'DM Mono', monospace; }
+  td { padding: 11px 10px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  tr.top td { background: #fbf7ee; }
+  tr.top td:first-child { box-shadow: inset 3px 0 0 var(--blue); }
+  .coin { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+  .rank { font-family: 'Cardo', serif; font-size: 16px; }
+
+  .basis { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .badge { font-family: 'DM Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 999px; }
+  .badge.live { background: #e7f6ee; color: var(--good); }
+  .badge.cached { background: #f3eeff; color: #6b46c1; }
+  .badge.est { background: #fff3e0; color: #9a6a10; }
+
+  .disclaimer { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; }
+  .empty { color: var(--muted); font-size: 15px; text-align: center; padding: 40px 20px; }
+  .err { color: var(--magenta); font-size: 14px; padding: 12px 0; }
+
+  @media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Finance Copilot</div>
+    <h1>Stable<span class="mark">Route</span></h1>
+    <p>The cheapest way to move money across borders with stablecoins — with an honest, per-leg breakdown of where the fee actually goes.</p>
+  </header>
+
+  <div class="grid">
+    <!-- controls -->
+    <div class="card">
+      <div class="panel-title">Transfer</div>
+      <div class="field amount-wrap">
+        <label for="amount">Amount to send</label>
+        <span class="cur" id="curSym">$</span>
+        <input id="amount" type="number" min="1" value="10000" inputmode="decimal">
+      </div>
+      <div class="field row">
+        <div>
+          <label for="send">From</label>
+          <select id="send"></select>
+        </div>
+        <div>
+          <label for="recv">To</label>
+          <select id="recv"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Stablecoin</label>
+        <div class="seg" id="coinSeg">
+          <button data-v="ALL" aria-pressed="true">Any</button>
+          <button data-v="USDC" aria-pressed="false">USDC</button>
+          <button data-v="USDT" aria-pressed="false">USDT</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Optimise for</label>
+        <div class="seg" id="prioSeg">
+          <button data-v="cheapest" aria-pressed="true">Cheapest</button>
+          <button data-v="fastest" aria-pressed="false">Fastest</button>
+        </div>
+      </div>
+      <button class="go" id="go">Compare routes</button>
+    </div>
+
+    <!-- results -->
+    <div class="results" id="results">
+      <div class="card empty">Enter a transfer and hit <b>Compare routes</b>.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- model data (mirrors config.py) ----
+const CHAINS = {
+  Solana:   {t:0.0006, s:8,  coins:["USDC","USDT"]},
+  Base:     {t:0.0040, s:6,  coins:["USDC","USDT"]},
+  Polygon:  {t:0.0030, s:8,  coins:["USDC","USDT"]},
+  Arbitrum: {t:0.0200, s:5,  coins:["USDC","USDT"]},
+  BNB:      {t:0.1000, s:6,  coins:["USDT","USDC"]},
+  Tron:     {t:1.2000, s:6,  coins:["USDT"]},
+  Ethereum: {t:1.8000, s:60, coins:["USDC","USDT"]},
+};
+const ONRAMPS = {
+  USD: {provider:"USD→USDC (Circle/business ramp)", fee:0.30, fx:0.00, coins:["USDC","USDT"]},
+  GBP: {provider:"GBP on-ramp",                     fee:0.90, fx:0.50, coins:["USDC","USDT"]},
+  EUR: {provider:"EUR on-ramp",                     fee:0.80, fx:0.45, coins:["USDC","USDT"]},
+};
+const OFFRAMPS = {
+  USD: {provider:"USD off-ramp",                fee:0.60, fx:0.00, coins:["USDC","USDT"], set:"1–3 business days (ACH)", sSecs:172800, rail:"ACH 1–3d"},
+  EUR: {provider:"EUR off-ramp",                fee:0.90, fx:0.45, coins:["USDC","USDT"], set:"~1 day (SEPA; Instant ~10s where supported)", sSecs:86400, rail:"SEPA ~1d"},
+  MXN: {provider:"Bitso (USDC→MXN, SPEI)",      fee:0.36, fx:0.40, coins:["USDC","USDT"], set:"minutes (SPEI, 24/7)", sSecs:120, rail:"SPEI"},
+  NGN: {provider:"NG off-ramp",                 fee:1.50, fx:1.20, coins:["USDT"],        set:"minutes (local rail)", sSecs:300, rail:"local"},
+  PHP: {provider:"PH off-ramp",                 fee:1.30, fx:0.80, coins:["USDC","USDT"], set:"minutes (local rail)", sSecs:300, rail:"local"},
+  GBP: {provider:"UK off-ramp (Faster Payments)", fee:0.60, fx:0.30, coins:["USDC","USDT"], set:"same-day (Faster Payments, 24/7)", sSecs:30, rail:"Faster Pay"},
+  BRL: {provider:"BR off-ramp (PIX)",           fee:0.90, fx:0.70, coins:["USDC","USDT"], set:"instant (PIX, 24/7)", sSecs:60, rail:"PIX"},
+  INR: {provider:"IN off-ramp (UPI)",           fee:1.00, fx:0.80, coins:["USDC","USDT"], set:"minutes (UPI)", sSecs:120, rail:"UPI"},
+  ARS: {provider:"AR off-ramp",                 fee:1.50, fx:2.50, coins:["USDT","USDC"], set:"minutes (local rail)", sSecs:600, rail:"local"},
+  COP: {provider:"CO off-ramp",                 fee:1.20, fx:1.00, coins:["USDC","USDT"], set:"minutes (local rail)", sSecs:300, rail:"local"},
+};
+const FALLBACK_FX = { USD:1, EUR:0.92, GBP:0.79, MXN:18.7, NGN:1550, PHP:57.5, BRL:5.5, INR:85, ARS:1485, COP:3249 };
+const REMITTANCE_BASELINE = 0.055; // ~5.5% typical retail remittance fee
+
+let coinPref = "ALL", prio = "cheapest";
+
+// ---- populate selects ----
+const sendSel = document.getElementById("send"), recvSel = document.getElementById("recv");
+Object.keys(ONRAMPS).forEach(c => sendSel.add(new Option(c, c)));
+Object.keys(OFFRAMPS).forEach(c => recvSel.add(new Option(c, c)));
+sendSel.value = "USD"; recvSel.value = "MXN";
+const curSym = {USD:"$",GBP:"£",EUR:"€",MXN:"$",NGN:"₦",PHP:"₱"};
+function syncSym(){ document.getElementById("curSym").textContent = curSym[sendSel.value] || "¤"; }
+sendSel.addEventListener("change", syncSym); syncSym();
+
+// ---- segmented controls ----
+function wireSeg(id, set){
+  document.querySelectorAll("#"+id+" button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      document.querySelectorAll("#"+id+" button").forEach(x=>x.setAttribute("aria-pressed","false"));
+      b.setAttribute("aria-pressed","true"); set(b.dataset.v);
+    });
+  });
+}
+wireSeg("coinSeg", v=>coinPref=v);
+wireSeg("prioSeg", v=>prio=v);
+
+// ---- FX with graceful fallback ----
+async function getFx(list){
+  const need = list.filter(c=>c!=="USD");
+  const asOf = new Date();
+  try{
+    const r = await fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols="+need.join(","),{cache:"no-store"});
+    if(!r.ok) throw 0;
+    const j = await r.json(); const rates = j.rates || {}; rates.USD = 1;
+    if(list.every(c=>rates[c])) return {rates, source:"live", asOf, fxDate:j.date||null};
+  }catch(e){}
+  const rates = {}; list.forEach(c=>rates[c]=FALLBACK_FX[c]); rates.USD=1;
+  return {rates, source:"cached", asOf, fxDate:null};
+}
+
+// ---- core model (mirrors cost_model.py) ----
+function compute(amount, send, recv, rates){
+  const on = ONRAMPS[send], off = OFFRAMPS[recv];
+  const midUsd = amount / rates[send];
+  const onTake = on.fee + on.fx, offTake = off.fee + off.fx;
+  const allowed = coinPref==="ALL" ? ["USDC","USDT"] : [coinPref];
+  const routes = [];
+  Object.entries(CHAINS).forEach(([chain,c])=>{
+    // coins that clear this chain AND both ramps — merged into one row (cost is coin-independent here)
+    const coins = allowed.filter(x => c.coins.includes(x) && on.coins.includes(x) && off.coins.includes(x));
+    if(!coins.length) return;
+    const net = c.t;
+    const stableBought = midUsd * (1 - onTake/100);
+    const stableAfter = stableBought - net;
+    const usdDelivered = stableAfter * (1 - offTake/100);
+    const received = usdDelivered * rates[recv];
+    const totalUsd = midUsd - usdDelivered;
+    // additive attribution for the anatomy bar (sums to totalUsd)
+    const onCost = midUsd * onTake/100;
+    const netCost = net;
+    const offCost = Math.max(totalUsd - onCost - netCost, 0);
+    routes.push({coins, coinLabel: coins.join(" or "), chain, net, received, totalUsd,
+      pct: midUsd? totalUsd/midUsd*100 : 0,
+      set: `${c.s<60?`~${c.s}s`:`~${Math.round(c.s/60)}min`} on-chain + ${off.set} off-ramp`,
+      chainSecs:c.s, offSecs:off.sSecs, totalSecs:c.s+off.sSecs, rail:off.rail,
+      onCost, netCost, offCost});
+  });
+  routes.sort((a,b)=> prio==="fastest" ? (a.totalSecs-b.totalSecs || a.totalUsd-b.totalUsd) : (a.totalUsd-b.totalUsd || a.totalSecs-b.totalSecs));
+  routes.forEach((r,i)=>{ r.rank=i+1; r.delta = r.totalUsd - routes[0].totalUsd; });
+  return {routes, midUsd, on, off};
+}
+
+// ---- formatting ----
+const money = (n,cur)=> new Intl.NumberFormat("en-US",{style:"currency",currency:cur,maximumFractionDigits: n<10?4:2}).format(n);
+const usd = n=> new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits: n<1?4:2}).format(n);
+const fmtTime = s => s<60?`~${s}s` : s<3600?`~${Math.round(s/60)} min` : s<86400?`~${Math.round(s/3600)} h` : `~${Math.round(s/86400)} day${s>=172800?"s":""}`;
+
+// ---- render ----
+async function run(){
+  const amount = parseFloat(document.getElementById("amount").value);
+  const send = sendSel.value, recv = recvSel.value;
+  const box = document.getElementById("results");
+  if(!(amount>0)){ box.innerHTML = `<div class="card"><div class="err">Enter an amount greater than zero.</div></div>`; return; }
+  box.innerHTML = `<div class="card empty">Comparing…</div>`;
+
+  const {rates, source, asOf, fxDate} = await getFx([send, recv]);
+  const {routes, midUsd, on, off} = compute(amount, send, recv, rates);
+  if(!routes.length){ box.innerHTML = `<div class="card"><div class="err">No viable route for that stablecoin on this corridor. Try “Any”.</div></div>`; return; }
+
+  const best = routes[0];
+  const fxMid = rates[recv]/rates[send];
+  const totalPctBar = best.onCost + best.netCost + best.offCost;
+  const w = x => (x/totalPctBar*100).toFixed(2)+"%";
+  const savings = midUsd*REMITTANCE_BASELINE - best.totalUsd;
+
+  const stamp = asOf.toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});
+  const fxNote = source==="live"
+    ? `FX live${fxDate?` · ECB ref ${fxDate}`:""}`
+    : `FX cached (offline fallback)`;
+
+  box.innerHTML = `
+    <div class="reco">
+      <div class="rlabel">${prio==="fastest"?"Fastest route":"Cheapest route"}</div>
+      <div class="big">${best.pct.toFixed(2)}<small>% all-in</small></div>
+      <div class="route">on <b>${best.chain}</b> with <b>${best.coinLabel}</b> — recipient gets <b>${money(best.received,recv)}</b></div>
+      <div class="sub">${usd(best.totalUsd)} total cost · settles ${best.set}</div>
+      <div style="margin-top:14px">
+        <span class="chip">${fxNote} · 1 ${send} = ${fxMid.toFixed(4)} ${recv}</span>
+        <span class="chip">network: estimated</span>
+        <span class="chip">ramps: estimated</span>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:#9fb3d6">Data as of ${stamp} (your time)</div>
+    </div>
+
+    ${savings>0 ? `<div class="savings"><b>${usd(savings)}</b><span>saved vs a typical ${(REMITTANCE_BASELINE*100).toFixed(0)}% remittance fee on this transfer</span></div>` : ``}
+
+    <div class="card anatomy">
+      <div class="panel-title">Where the fee goes</div>
+      <div class="hint">Total fee split by leg. Notice the network cost is barely visible — the ramps are almost the entire cost.</div>
+      <div class="bar" role="img" aria-label="Fee composition">
+        <span class="s-onramp"  style="width:${w(best.onCost)}"></span>
+        <span class="s-network" style="width:${w(best.netCost)}"></span>
+        <span class="s-offramp" style="width:${w(best.offCost)}"></span>
+      </div>
+      <div class="legend">
+        <div><div class="k"><span class="dot" style="background:var(--blue)"></span>On-ramp (${on.provider})</div><div class="v">${usd(best.onCost)} · ${(on.fee+on.fx).toFixed(2)}%</div></div>
+        <div><div class="k"><span class="dot" style="background:var(--gold)"></span>Network — ${best.chain}</div><div class="v">${usd(best.netCost)}</div></div>
+        <div><div class="k"><span class="dot" style="background:var(--magenta)"></span>Off-ramp + FX (${off.provider})</div><div class="v">${usd(best.offCost)} · ${(off.fee+off.fx).toFixed(2)}%</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="panel-title">All routes (${routes.length}) — one per chain</div>
+      <div class="hint" style="font-size:13px;color:var(--muted);margin:-6px 0 14px">Cost is nearly identical across chains because the ramps dominate. The only real difference is the network fee — shown as “vs #1”. USDC and USDT price the same here, so they share a row.</div>
+      <table>
+        <thead><tr><th>#</th><th>Chain</th><th>Stablecoin</th><th class="num">Network fee</th><th>Settlement</th><th class="num">Total cost</th><th class="num">vs #1</th><th class="num">Received</th></tr></thead>
+        <tbody>
+          ${routes.map(r=>`
+            <tr class="${r.rank===1?"top":""}">
+              <td class="rank">${r.rank}</td>
+              <td>${r.chain}</td>
+              <td class="coin">${r.coinLabel}</td>
+              <td class="num">${usd(r.net)}</td>
+              <td>${fmtTime(r.chainSecs)} <span class="coin">+ ${r.rail}</span></td>
+              <td class="num">${usd(r.totalUsd)}</td>
+              <td class="num">${r.rank===1?"—":(r.delta>=0?"+":"−")+usd(Math.abs(r.delta))}</td>
+              <td class="num">${money(r.received,recv)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+      <div class="basis"><span class="badge est">estimate</span> Ramp fees are illustrative until wired to live provider quotes. Network &amp; FX shown per data source above.</div>
+    </div>
+
+    <div class="disclaimer">Estimates for comparison only — not a quote or financial advice.</div>
+  `;
+}
+
+document.getElementById("go").addEventListener("click", run);
+document.getElementById("amount").addEventListener("keydown", e=>{ if(e.key==="Enter") run(); });
+run(); // show the USD→MXN hero on load
+</script>
+</body>
+</html>
