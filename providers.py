@@ -9,8 +9,8 @@ from __future__ import annotations
 import requests
 from config import CHAINS, FALLBACK_FX_PER_USD
 
-FX_TIMEOUT = 4
-GAS_TIMEOUT = 4
+FX_TIMEOUT = 2.5
+GAS_TIMEOUT = 2.5
 
 
 def get_fx_rates(currencies: list[str]) -> tuple[dict[str, float], str, str | None]:
